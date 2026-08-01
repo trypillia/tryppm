@@ -7,17 +7,32 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build_and_test:
+  test:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      - name: Cache Trypillia Language
+        id: cache-trypillia
+        uses: actions/cache@v4
+        with:
+          path: /tmp/trypillia-language
+          key: trypillia-${{ runner.os }}-${{ github.sha }}
+
       - name: Setup Trypillia
+        if: steps.cache-trypillia.outputs.cache-hit != 'true'
         uses: trypillia/setup-trypillia@v2
         with:
           version: 'latest'
+
+      - name: Restore Trypillia PATH from Cache
+        if: steps.cache-trypillia.outputs.cache-hit == 'true'
+        run: |
+          mkdir -p $HOME/.local/bin
+          cp /tmp/trypillia-language/build/trypillia $HOME/.local/bin/trypillia
+          cp /tmp/trypillia-language/build/trypillia-test $HOME/.local/bin/trypillia-test
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run Tests
         run: trypillia-test --coverage test.try
@@ -26,6 +41,26 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           files: ./coverage.info
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Restore Trypillia Language Cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/trypillia-language
+          key: trypillia-${{ runner.os }}-${{ github.sha }}
+
+      - name: Restore Trypillia PATH from Cache
+        run: |
+          mkdir -p $HOME/.local/bin
+          cp /tmp/trypillia-language/build/trypillia $HOME/.local/bin/trypillia
+          cp /tmp/trypillia-language/build/trypillia-test $HOME/.local/bin/trypillia-test
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build TrypPM binary
         run: trypillia build main.try tryppm
