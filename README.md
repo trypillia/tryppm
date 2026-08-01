@@ -7,6 +7,7 @@
 *The official package manager for the Trypillia language.*
 
 [![TrypPM CI Workflow](https://github.com/trypillia/tryppm/actions/workflows/ci.yml/badge.svg)](https://github.com/trypillia/tryppm/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/codecov/c/github/trypillia/tryppm?label=Test%20Coverage&logo=codecov)](https://app.codecov.io/gh/trypillia/tryppm)
 [![License: CSSM Unlimited License v2.0](https://img.shields.io/badge/License-CSSM%20Unlimited%20License%20v2.0-blue.svg?logo=opensourceinitiative)](LICENSE)
 
 [Commands](#commands) · [Project Manifest](#project-manifest) · [Example Output](#example-output) · [Contributing](#contributing)
