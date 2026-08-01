@@ -19,7 +19,7 @@ jobs:
           version: 'latest'
 
       - name: Upload Trypillia Binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trypillia-binaries
           path: ~/.local/bin/trypillia*
@@ -55,7 +55,7 @@ jobs:
         run: trypillia build main.try tryppm
 
       - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: tryppm-linux-amd64
           path: tryppm
