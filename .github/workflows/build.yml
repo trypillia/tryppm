@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Trypillia
-        uses: ChernegaSergiy/setup-trypillia@v1
+        uses: trypillia/setup-trypillia@v1
         with:
           version: 'latest'
 
