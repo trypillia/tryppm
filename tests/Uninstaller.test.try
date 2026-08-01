@@ -110,4 +110,19 @@ describe("Uninstaller", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should exit if tryp.json cannot be read", fn() {
+        File.open = fn(path, mode) {
+            class MockFileReadError {
+                fn read() { return MockResult(false, ""); }
+                fn close() {}
+            }
+            return MockResult(true, MockFileReadError());
+        };
+        
+        let uninstaller = Uninstaller();
+        uninstaller.uninstallPackage("github:test/repo");
+        
+        assertEq(exitCalled, true);
+    });
 });
