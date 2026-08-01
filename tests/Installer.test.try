@@ -214,8 +214,6 @@ describe("Installer", fn() {
         let installer = Installer();
         installer.installManifest();
         
-        // Since installDeps is called, the globalWrittenData should contain "path/main.try"
-        // Wait, folderName for "../local/path" is "path"
         let fullData = globalWrittenData[1];
         assert(String.indexOf(fullData, "load \"path/main.try\";") >= 0);
     });
