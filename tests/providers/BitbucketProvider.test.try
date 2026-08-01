@@ -107,6 +107,12 @@ describe("BitbucketProvider", fn() {
         assertEq(ver, "master");
     });
 
+    it("should fallback to requested version if tags fetch fails or no tags match", fn() {
+        let p = BitbucketProvider();
+        let ver = p.resolveVersion("bitbucket:this-repo-should-never-exist-xyz123/test", "^99.0.0");
+        assertEq(ver, "^99.0.0");
+    });
+
     it("should install package via git clone", fn() {
         let p = BitbucketProvider();
         let installer = MockInstaller();
