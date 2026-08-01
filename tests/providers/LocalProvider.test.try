@@ -1,0 +1,64 @@
+load "../../src/LocalProvider.try";
+use TrypPM.Providers.LocalProvider;
+
+class MockInstaller {
+    fn installDeps(deps, replaceMap, installedMap) {
+        this.depsCalled = true;
+    }
+}
+
+describe("LocalProvider", fn() {
+    beforeEach(fn() {
+        OS.exec("mkdir -p _test_local_pkg");
+        let f = File.open("_test_local_pkg/tryp.json", "w");
+        f.value.write("{\"dependencies\": {\"some-dep\": \"1.0.0\"}}");
+        f.value.close();
+    });
+
+    afterEach(fn() {
+        OS.exec("rm -rf _test_local_pkg");
+        OS.exec("rm -rf _test_target_dir");
+    });
+
+    it("should support local: prefix", fn() {
+        let p = LocalProvider();
+        assertEq(p.supports("local:../path"), true);
+        assertEq(p.supports("github:User/Repo"), false);
+    });
+
+    it("should resolve version to LOCAL", fn() {
+        let p = LocalProvider();
+        assertEq(p.resolveVersion("local:path", "1.0.0"), "LOCAL");
+    });
+
+    it("should copy local directory and call installDeps", fn() {
+        let p = LocalProvider();
+        let installer = MockInstaller();
+        installer.depsCalled = false;
+        
+        OS.exec("mkdir -p _test_target_dir");
+        
+        let res = p.install("local:_test_local_pkg", "LOCAL", "_test_target_dir", {}, {}, installer);
+        assertEq(res, true);
+        
+        assertEq(File.exists("_test_target_dir/_test_local_pkg/tryp.json"), true);
+        assertEq(installer.depsCalled, true);
+    });
+
+    it("should handle trailing slash in local path", fn() {
+        let p = LocalProvider();
+        let installer = MockInstaller();
+        installer.depsCalled = false;
+        
+        OS.exec("mkdir -p _test_target_dir");
+        let res = p.install("local:_test_local_pkg/", "LOCAL", "_test_target_dir", {}, {}, installer);
+        assertEq(res, true);
+        assertEq(File.exists("_test_target_dir/_test_local_pkg/tryp.json"), true);
+    });
+
+    it("should fail if path is invalid", fn() {
+        let p = LocalProvider();
+        let res = p.install("local:_invalid_path_that_doesnt_exist", "LOCAL", "_test_target_dir", {}, {}, nil);
+        assertEq(res, false);
+    });
+});
