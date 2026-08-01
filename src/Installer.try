@@ -75,6 +75,7 @@ class Installer {
                 print("Already resolved: " + existingVersion);
                 print("Requested now: " + resolvedVersion);
                 OS.exit(1);
+                return false;
             }
             return true;
         }
