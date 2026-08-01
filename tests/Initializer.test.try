@@ -1,0 +1,96 @@
+load "../src/Initializer.try";
+use TrypPM.Core.Initializer;
+
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFile {
+    let writtenData;
+    fn init() {
+        this.writtenData = "";
+    }
+    fn write(data) {
+        this.writtenData = this.writtenData + data;
+    }
+    fn close() {}
+}
+
+let originalOsExec = OS.exec;
+let originalOsCwd = OS.cwd;
+let originalFileOpen = File.open;
+
+describe("Initializer", fn() {
+    let mockFileInst = nil;
+    
+    beforeEach(fn() {
+        mockFileInst = MockFile();
+        
+        OS.cwd = fn() {
+            return MockResult(true, "/home/user/projects/my-awesome-app");
+        };
+        
+        OS.exec = fn(cmd) {
+            if (cmd == "git config user.name") {
+                return MockResult(true, "Test Author\n");
+            }
+            return MockResult(false, "");
+        };
+        
+        File.open = fn(path, mode) {
+            if (path == "tryp.json" && mode == "w") {
+                return MockResult(true, mockFileInst);
+            }
+            return MockResult(false, "");
+        };
+    });
+    
+    afterEach(fn() {
+        OS.cwd = originalOsCwd;
+        OS.exec = originalOsExec;
+        File.open = originalFileOpen;
+    });
+    
+    it("should generate a manifest with current directory as default name", fn() {
+        let initr = Initializer();
+        initr.initManifest();
+        
+        assert(String.length(mockFileInst.writtenData) > 0);
+        let manifestMap = Json.parse(mockFileInst.writtenData);
+        assertEq(manifestMap["name"], "my-awesome-app");
+    });
+    
+    it("should retrieve author from git config and trim it", fn() {
+        let initr = Initializer();
+        initr.initManifest();
+        
+        let manifestMap = Json.parse(mockFileInst.writtenData);
+        assertEq(manifestMap["author"], "Test Author");
+    });
+    
+    it("should fallback to default values if OS calls fail", fn() {
+        OS.cwd = fn() { return MockResult(false, ""); };
+        OS.exec = fn(cmd) { return MockResult(false, ""); };
+        
+        let initr = Initializer();
+        initr.initManifest();
+        
+        let manifestMap = Json.parse(mockFileInst.writtenData);
+        assertEq(manifestMap["name"], "project");
+        assertEq(manifestMap["author"], "Unknown");
+    });
+    
+    it("should handle file creation failure gracefully", fn() {
+        File.open = fn(path, mode) { return MockResult(false, ""); };
+        
+        let initr = Initializer();
+        // Just checking it doesn't crash
+        initr.initManifest();
+        assertEq(mockFileInst.writtenData, "");
+    });
+});
