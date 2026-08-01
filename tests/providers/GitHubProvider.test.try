@@ -104,14 +104,24 @@ describe("GitHubProvider", fn() {
 
     it("should install package via git clone", fn() {
         let p = GitHubProvider();
-        let installer = MockInstaller();
         depsCalledFlag = false;
-        
-        let res = p.install("github:octocat/Hello-World", "master", "_test_target_dir", {}, {}, installer);
-        
+        let res = p.install("github:octocat/Hello-World", "v1.0.0", "_test_target_dir", {}, {}, MockInstaller());
         assertEq(res, true);
+        
+        let len = List.length(mockExecLog);
+        assertEq(len, 2);
         assertEq(mockExecLog[0], "rm -rf _test_target_dir/Hello-World");
-        assertEq(mockExecLog[1], "git clone --depth 1 --branch master https://github.com/octocat/Hello-World.git _test_target_dir/Hello-World");
+        assertEq(mockExecLog[1], "git clone --depth 1 --branch v1.0.0 https://github.com/octocat/Hello-World.git _test_target_dir/Hello-World");
+        
         assertEq(depsCalledFlag, true);
+    });
+
+    it("should return false and print error if git clone fails", fn() {
+        let p = GitHubProvider();
+        OS.exec = fn(cmd) {
+            return MockResult(false, "");
+        };
+        let res = p.install("github:octocat/Hello-World", "v1.0.0", "_test_target_dir", {}, {}, MockInstaller());
+        assertEq(res, false);
     });
 });
