@@ -2,15 +2,79 @@ load "../../src/SemverTrait.try";
 load "../../src/GitHubProvider.try";
 use TrypPM.Providers.GitHubProvider;
 
+let depsCalledFlag = false;
+
 class MockInstaller {
     fn installDeps(deps, replaceMap, installedMap) {
-        this.depsCalled = true;
+        depsCalledFlag = true;
     }
 }
 
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFile {
+    fn read() {
+        let map = {"dependencies": {"some-dep": "1.0.0"}};
+        return MockResult(true, Json.stringify(map));
+    }
+    fn close() {}
+}
+
+let originalOsExec = OS.exec;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+let originalHttpGet = Http.get;
+
 describe("GitHubProvider", fn() {
-    after(fn() {
-        OS.exec("rm -rf _test_target_dir");
+    let mockExecLog = [];
+    
+    beforeEach(fn() {
+        mockExecLog = [];
+        
+        OS.exec = fn(cmd) {
+            List.push(mockExecLog, cmd);
+            return MockResult(true, "");
+        };
+
+        File.exists = fn(path) {
+            return path == "_test_target_dir/Hello-World/tryp.json";
+        };
+
+        File.open = fn(path, mode) {
+            return MockResult(true, MockFile());
+        };
+
+        Http.get = fn(url) {
+            if (url == "https://api.github.com/repos/octocat/Hello-World/tags") {
+                let tags = [
+                    {"name": "v0.9.0"},
+                    {"name": "v1.0.0"},
+                    {"name": "v1.1.0"},
+                    {"name": "v2.0.0"}
+                ];
+                return MockResult(true, Json.stringify(tags));
+            } else if (url == "https://api.github.com/repos/octocat/Hello-World/releases/latest") {
+                return MockResult(true, Json.stringify({"tag_name": "v2.0.0"}));
+            } else if (url == "https://api.github.com/repos/this-repo-should-never-exist-xyz123/test/tags" || url == "https://api.github.com/repos/this-repo-should-never-exist-xyz123/test/releases/latest") {
+                let errorResponse = {"message": "Not Found", "documentation_url": "..."};
+                return MockResult(true, Json.stringify(errorResponse));
+            }
+            return MockResult(false, "");
+        };
+    });
+
+    afterEach(fn() {
+        OS.exec = originalOsExec;
+        File.exists = originalFileExists;
+        File.open = originalFileOpen;
+        Http.get = originalHttpGet;
     });
 
     it("should support github: prefix", fn() {
@@ -22,31 +86,32 @@ describe("GitHubProvider", fn() {
     it("should resolve version 'latest' to a tag or main", fn() {
         let p = GitHubProvider();
         let ver = p.resolveVersion("github:octocat/Hello-World", "latest");
-        assert(String.length(ver) > 0);
+        assertEq(ver, "v2.0.0");
     });
 
     it("should resolve version with caret constraint", fn() {
         let p = GitHubProvider();
-        // Just checking if it runs without crashing, since we don't know exact tags
         let ver = p.resolveVersion("github:octocat/Hello-World", "^1.0.0");
-        assert(String.length(ver) > 0);
+        assertEq(ver, "v1.1.0");
     });
 
-    it("should fallback to main for unknown repo", fn() {
+    it("should fallback to requested version for unknown repo", fn() {
         let p = GitHubProvider();
         let ver = p.resolveVersion("github:this-repo-should-never-exist-xyz123/test", "latest");
+        // Our API returns Not Found, so it falls back to "main"
         assertEq(ver, "main");
     });
 
     it("should install package via git clone", fn() {
         let p = GitHubProvider();
         let installer = MockInstaller();
-        installer.depsCalled = false;
+        depsCalledFlag = false;
         
-        OS.exec("mkdir -p _test_target_dir");
         let res = p.install("github:octocat/Hello-World", "master", "_test_target_dir", {}, {}, installer);
         
         assertEq(res, true);
-        assertEq(File.exists("_test_target_dir/Hello-World/README"), true);
+        assertEq(mockExecLog[0], "rm -rf _test_target_dir/Hello-World");
+        assertEq(mockExecLog[1], "git clone --depth 1 --branch master https://github.com/octocat/Hello-World.git _test_target_dir/Hello-World");
+        assertEq(depsCalledFlag, true);
     });
 });
