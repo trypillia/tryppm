@@ -125,4 +125,13 @@ describe("BitbucketProvider", fn() {
         assertEq(mockExecLog[1], "git clone --depth 1 --branch master https://bitbucket.org/user/hello-world.git _test_target_dir/hello-world");
         assertEq(depsCalledFlag, true);
     });
+
+    it("should return false and print error if git clone fails", fn() {
+        let p = BitbucketProvider();
+        OS.exec = fn(cmd) {
+            return MockResult(false, "");
+        };
+        let res = p.install("bitbucket:user/hello-world", "master", "_test_target_dir", {}, {}, MockInstaller());
+        assertEq(res, false);
+    });
 });
