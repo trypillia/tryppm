@@ -119,6 +119,7 @@ class Installer {
         if (!contentRes.isOk) {
             print("Error reading tryp.json");
             OS.exit(1);
+            return;
         }
         
         let content = contentRes.value;
