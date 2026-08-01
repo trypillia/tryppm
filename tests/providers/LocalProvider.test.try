@@ -11,7 +11,8 @@ describe("LocalProvider", fn() {
     beforeEach(fn() {
         OS.exec("mkdir -p _test_local_pkg");
         let f = File.open("_test_local_pkg/tryp.json", "w");
-        f.value.write("{\"dependencies\": {\"some-dep\": \"1.0.0\"}}");
+        let map = {"dependencies": {"some-dep": "1.0.0"}};
+        f.value.write(Json.stringify(map));
         f.value.close();
     });
 
