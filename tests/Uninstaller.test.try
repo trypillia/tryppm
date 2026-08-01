@@ -1,6 +1,14 @@
 load "../src/Uninstaller.try";
 use TrypPM.Core.Uninstaller;
 
+let originalOsExec = OS.exec;
+let originalOsExit = OS.exit;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+
+let globalWrittenData = "";
+let exitCalled = false;
+
 class MockResult {
     let isOk;
     let value;
@@ -10,13 +18,7 @@ class MockResult {
     }
 }
 
-class MockFile {
-    let mode;
-    let writtenData;
-    fn init(mode) {
-        this.mode = mode;
-        this.writtenData = "";
-    }
+class MockFileRead {
     fn read() {
         let manifest = {
             "name": "test-pkg",
@@ -26,19 +28,21 @@ class MockFile {
         };
         return MockResult(true, Json.stringify(manifest));
     }
-    fn write(data) {
-        this.writtenData = this.writtenData + data;
-    }
     fn close() {}
 }
 
-let originalOsExec = OS.exec;
-let originalOsExit = OS.exit;
-let originalFileExists = File.exists;
-let originalFileOpen = File.open;
-
-let globalWrittenData = "";
-let exitCalled = false;
+class MockFileWrite {
+    let path;
+    fn init(path) {
+        this.path = path;
+    }
+    fn write(data) {
+        if (this.path == "tryp.json") {
+            globalWrittenData = globalWrittenData + data;
+        }
+    }
+    fn close() {}
+}
 
 describe("Uninstaller", fn() {
     let mockExecLog = [];
@@ -63,12 +67,11 @@ describe("Uninstaller", fn() {
         };
 
         File.open = fn(path, mode) {
-            let mf = MockFile(mode);
-            // capture reference so we can inspect it later
             if (mode == "w") {
-                mf.write = fn(data) { globalWrittenData = data; };
+                return MockResult(true, MockFileWrite(path));
+            } else {
+                return MockResult(true, MockFileRead());
             }
-            return MockResult(true, mf);
         };
     });
     
@@ -96,8 +99,6 @@ describe("Uninstaller", fn() {
         let newManifest = Json.parse(globalWrittenData);
         assertEq(Map.has(newManifest["dependencies"], "github:test/repo"), false);
         
-        // Check if rm -rf was called
-        // Since Installer() is called, it might log more commands, but rm -rf tryp_modules/repo should be the first
         assertEq(mockExecLog[0], "rm -rf tryp_modules/repo");
     });
     
