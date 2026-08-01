@@ -141,4 +141,19 @@ describe("Installer", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should exit if tryp.json cannot be read", fn() {
+        File.open = fn(path, mode) {
+            class MockFileReadError {
+                fn read() { return MockResult(false, ""); }
+                fn close() {}
+            }
+            return MockResult(true, MockFileReadError());
+        };
+        
+        let installer = Installer();
+        installer.installManifest();
+        
+        assertEq(exitCalled, true);
+    });
 });
