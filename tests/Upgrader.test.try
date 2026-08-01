@@ -32,7 +32,7 @@ describe("Upgrader", fn() {
         let upgrader = Upgrader();
         upgrader.upgradeCore();
         
-        assertEq(List.length(mockExecLog), 7);
+        assertEq(List.length(mockExecLog), 8);
         assertEq(mockExecLog[0], "rm -rf /tmp/trypillia_update");
         assertEq(mockExecLog[1], "git clone https://github.com/trypillia/trypillia-language.git /tmp/trypillia_update 2>&1");
         assertEq(mockExecLog[2], "cd /tmp/trypillia_update && mkdir -p build && cd build && cmake .. 2>&1");
@@ -40,6 +40,7 @@ describe("Upgrader", fn() {
         assertEq(mockExecLog[4], "mkdir -p ~/.local/bin");
         assertEq(mockExecLog[5], "rm -f ~/.local/bin/trypillia");
         assertEq(mockExecLog[6], "cp /tmp/trypillia_update/build/trypillia ~/.local/bin/trypillia 2>&1");
+        assertEq(mockExecLog[7], "rm -rf /tmp/trypillia_update");
     });
     
     it("should handle command failures gracefully", fn() {
@@ -53,6 +54,6 @@ describe("Upgrader", fn() {
         
         // It still executes commands since there's no early return on failure
         // in the current implementation, but we check that it doesn't crash.
-        assertEq(List.length(mockExecLog), 7);
+        assertEq(List.length(mockExecLog), 8);
     });
 });
