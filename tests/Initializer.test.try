@@ -1,15 +1,6 @@
 load "../src/Initializer.try";
 use TrypPM.Core.Initializer;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
-
 class MockFile {
     let writtenData;
     fn init() {
@@ -32,21 +23,21 @@ describe("Initializer", fn() {
         mockFileInst = MockFile();
         
         OS.cwd = fn() {
-            return MockResult(true, "/home/user/projects/my-awesome-app");
+            return MockResult.ok("/home/user/projects/my-awesome-app");
         };
         
         OS.exec = fn(cmd) {
             if (cmd == "git config user.name") {
-                return MockResult(true, "Test Author\n");
+                return MockResult.ok("Test Author\n");
             }
-            return MockResult(false, "");
+            return MockResult.err("");
         };
         
         File.open = fn(path, mode) {
             if (path == "tryp.json" && mode == "w") {
-                return MockResult(true, mockFileInst);
+                return MockResult.ok(mockFileInst);
             }
-            return MockResult(false, "");
+            return MockResult.err("");
         };
     });
     
@@ -74,8 +65,8 @@ describe("Initializer", fn() {
     });
     
     it("should fallback to default values if OS calls fail", fn() {
-        OS.cwd = fn() { return MockResult(false, ""); };
-        OS.exec = fn(cmd) { return MockResult(false, ""); };
+        OS.cwd = fn() { return MockResult.err(""); };
+        OS.exec = fn(cmd) { return MockResult.err(""); };
         
         let initr = Initializer();
         initr.initManifest();
@@ -86,7 +77,7 @@ describe("Initializer", fn() {
     });
     
     it("should handle file creation failure gracefully", fn() {
-        File.open = fn(path, mode) { return MockResult(false, ""); };
+        File.open = fn(path, mode) { return MockResult.err(""); };
         
         let initr = Initializer();
         // Just checking it doesn't crash
