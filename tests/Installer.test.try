@@ -231,4 +231,25 @@ describe("Installer", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should install package without specific version", fn() {
+        File.open = fn(path, mode) {
+            if (mode == "w") {
+                let writeCb = fn(p, data) {
+                    List.push(globalWrittenData, p);
+                    List.push(globalWrittenData, data);
+                };
+                return MockResult(true, MockFileWrite(path, writeCb));
+            }
+            return MockResult(true, MockFileRead(path));
+        };
+        
+        let installer = Installer();
+        let res = installer.installPackage("github:test/repo");
+        
+        assertEq(res, true);
+        
+        let fullData = globalWrittenData[1];
+        assert(String.indexOf(fullData, "load \"repo/main.try\";") >= 0);
+    });
 });
