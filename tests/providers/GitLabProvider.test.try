@@ -100,6 +100,12 @@ describe("GitLabProvider", fn() {
         assertEq(ver, "main");
     });
 
+    it("should fallback to requested version if tags fetch fails or no tags match", fn() {
+        let p = GitLabProvider();
+        let ver = p.resolveVersion("gitlab:this-repo-should-never-exist-xyz123/test", "^99.0.0");
+        assertEq(ver, "^99.0.0");
+    });
+
     it("should install package via git clone", fn() {
         let p = GitLabProvider();
         let installer = MockInstaller();
