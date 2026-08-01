@@ -10,19 +10,12 @@ class MockInstaller {
     }
 }
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
+
 
 class MockFile {
     fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};
-        return MockResult(true, Json.stringify(map));
+        return MockResult.ok(Json.stringify(map));
     }
     fn close() {}
 }
@@ -40,7 +33,7 @@ describe("CodebergProvider", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
 
         File.exists = fn(path) {
@@ -48,7 +41,7 @@ describe("CodebergProvider", fn() {
         };
 
         File.open = fn(path, mode) {
-            return MockResult(true, MockFile());
+            return MockResult.ok(MockFile());
         };
 
         Http.get = fn(url) {
@@ -59,13 +52,13 @@ describe("CodebergProvider", fn() {
                     {"name": "v1.1.0"},
                     {"name": "v2.0.0"}
                 ];
-                return MockResult(true, Json.stringify(tags));
+                return MockResult.ok(Json.stringify(tags));
             } else if (url == "https://codeberg.org/api/v1/repos/user/hello-world/releases/latest") {
-                return MockResult(true, Json.stringify({"tag_name": "v2.0.0"}));
+                return MockResult.ok(Json.stringify({"tag_name": "v2.0.0"}));
             } else if (url == "https://codeberg.org/api/v1/repos/this-repo-should-never-exist-xyz123/test/tags" || url == "https://codeberg.org/api/v1/repos/this-repo-should-never-exist-xyz123/test/releases/latest") {
-                return MockResult(false, "");
+                return MockResult.err("");
             }
-            return MockResult(false, "");
+            return MockResult.err("");
         };
     });
 
@@ -122,7 +115,7 @@ describe("CodebergProvider", fn() {
     it("should return false and print error if git clone fails", fn() {
         let p = CodebergProvider();
         OS.exec = fn(cmd) {
-            return MockResult(false, "");
+            return MockResult.err("");
         };
         let res = p.install("codeberg:user/hello-world", "master", "_test_target_dir", {}, {}, MockInstaller());
         assertEq(res, false);
