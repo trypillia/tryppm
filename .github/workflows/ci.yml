@@ -26,7 +26,7 @@ jobs:
           retention-days: 1
 
       - name: Run Tests
-        run: trypillia-test --coverage test.try
+        run: trypillia-test --coverage tests/
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v7
