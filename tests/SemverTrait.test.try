@@ -1,8 +1,7 @@
 load "../src/SemverTrait.try";
 use TrypPM.Providers.SemverTrait;
 
-class SemverHelper {
-    use SemverTrait;
+class SemverHelper implements SemverTrait {
 }
 
 describe("SemverTrait", fn() {
