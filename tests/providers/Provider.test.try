@@ -1,0 +1,19 @@
+load "../../src/Provider.try";
+use TrypPM.Core.Provider;
+
+describe("Provider (Abstract Base Class)", fn() {
+    it("should return false for supports()", fn() {
+        let p = Provider();
+        assertEq(p.supports("github:User/Repo"), false);
+    });
+
+    it("should return requestedVersion for resolveVersion()", fn() {
+        let p = Provider();
+        assertEq(p.resolveVersion("github:User/Repo", "1.0.0"), "1.0.0");
+    });
+
+    it("should return false for install()", fn() {
+        let p = Provider();
+        assertEq(p.install("pkg", "1.0", "dir", {}, {}, nil), false);
+    });
+});
