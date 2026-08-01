@@ -156,4 +156,22 @@ describe("Installer", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should exit if no dependencies found in tryp.json", fn() {
+        File.open = fn(path, mode) {
+            class MockFileReadNoDeps {
+                fn read() {
+                    let manifest = {"name": "test-pkg"};
+                    return MockResult(true, Json.stringify(manifest));
+                }
+                fn close() {}
+            }
+            return MockResult(true, MockFileReadNoDeps());
+        };
+        
+        let installer = Installer();
+        installer.installManifest();
+        
+        assertEq(exitCalled, true);
+    });
 });
