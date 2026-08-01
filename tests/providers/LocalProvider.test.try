@@ -1,24 +1,62 @@
 load "../../src/LocalProvider.try";
 use TrypPM.Providers.LocalProvider;
 
+let depsCalledFlag = false;
+
 class MockInstaller {
     fn installDeps(deps, replaceMap, installedMap) {
-        this.depsCalled = true;
+        depsCalledFlag = true;
     }
 }
 
-describe("LocalProvider", fn() {
-    beforeEach(fn() {
-        OS.exec("mkdir -p _test_local_pkg");
-        let f = File.open("_test_local_pkg/tryp.json", "w");
+// Backup original native methods
+let originalOsExec = OS.exec;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFile {
+    fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};
-        f.value.write(Json.stringify(map));
-        f.value.close();
+        return MockResult(true, Json.stringify(map));
+    }
+    fn close() {}
+}
+
+describe("LocalProvider", fn() {
+    let mockExecLog = [];
+    
+    beforeEach(fn() {
+        mockExecLog = [];
+        
+        // Mock OS.exec to record commands and always return success
+        OS.exec = fn(cmd) {
+            List.push(mockExecLog, cmd);
+            return MockResult(true, "");
+        };
+
+        File.exists = fn(path) {
+            return path == "_test_local_pkg/tryp.json" || path == "_test_local_pkg//tryp.json";
+        };
+        
+        File.open = fn(path, mode) {
+            return MockResult(true, MockFile());
+        };
     });
 
     afterEach(fn() {
-        OS.exec("rm -rf _test_local_pkg");
-        OS.exec("rm -rf _test_target_dir");
+        // Restore original methods
+        OS.exec = originalOsExec;
+        File.exists = originalFileExists;
+        File.open = originalFileOpen;
     });
 
     it("should support local: prefix", fn() {
@@ -35,30 +73,32 @@ describe("LocalProvider", fn() {
     it("should copy local directory and call installDeps", fn() {
         let p = LocalProvider();
         let installer = MockInstaller();
-        installer.depsCalled = false;
-        
-        OS.exec("mkdir -p _test_target_dir");
+        depsCalledFlag = false;
         
         let res = p.install("local:_test_local_pkg", "LOCAL", "_test_target_dir", {}, {}, installer);
         assertEq(res, true);
         
-        assertEq(File.exists("_test_target_dir/_test_local_pkg/tryp.json"), true);
-        assertEq(installer.depsCalled, true);
+        assertEq(mockExecLog[0], "rm -rf _test_target_dir/_test_local_pkg");
+        assertEq(mockExecLog[1], "cp -r _test_local_pkg _test_target_dir/_test_local_pkg");
+        assertEq(depsCalledFlag, true);
     });
 
     it("should handle trailing slash in local path", fn() {
         let p = LocalProvider();
         let installer = MockInstaller();
-        installer.depsCalled = false;
+        depsCalledFlag = false;
         
-        OS.exec("mkdir -p _test_target_dir");
         let res = p.install("local:_test_local_pkg/", "LOCAL", "_test_target_dir", {}, {}, installer);
         assertEq(res, true);
-        assertEq(File.exists("_test_target_dir/_test_local_pkg/tryp.json"), true);
+        assertEq(mockExecLog[1], "cp -r _test_local_pkg/ _test_target_dir/_test_local_pkg");
     });
 
     it("should fail if path is invalid", fn() {
         let p = LocalProvider();
+        
+        // Mock OS.exec to fail for this test
+        OS.exec = fn(cmd) { return MockResult(false, ""); };
+        
         let res = p.install("local:_invalid_path_that_doesnt_exist", "LOCAL", "_test_target_dir", {}, {}, nil);
         assertEq(res, false);
     });
