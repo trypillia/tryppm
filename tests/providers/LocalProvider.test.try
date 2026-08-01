@@ -14,19 +14,12 @@ let originalOsExec = OS.exec;
 let originalFileExists = File.exists;
 let originalFileOpen = File.open;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
+
 
 class MockFile {
     fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};
-        return MockResult(true, Json.stringify(map));
+        return MockResult.ok(Json.stringify(map));
     }
     fn close() {}
 }
@@ -40,7 +33,7 @@ describe("LocalProvider", fn() {
         // Mock OS.exec to record commands and always return success
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
 
         File.exists = fn(path) {
@@ -48,7 +41,7 @@ describe("LocalProvider", fn() {
         };
         
         File.open = fn(path, mode) {
-            return MockResult(true, MockFile());
+            return MockResult.ok(MockFile());
         };
     });
 
@@ -97,7 +90,7 @@ describe("LocalProvider", fn() {
         let p = LocalProvider();
         
         // Mock OS.exec to fail for this test
-        OS.exec = fn(cmd) { return MockResult(false, ""); };
+        OS.exec = fn(cmd) { return MockResult.err(""); };
         
         let res = p.install("local:_invalid_path_that_doesnt_exist", "LOCAL", "_test_target_dir", {}, {}, nil);
         assertEq(res, false);
