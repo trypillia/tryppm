@@ -125,4 +125,10 @@ describe("Uninstaller", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should handle trailing slash in package name", fn() {
+        let uninstaller = Uninstaller();
+        uninstaller.uninstallPackage("github:test/repo/");
+        assertEq(mockExecLog[0], "rm -rf tryp_modules/repo");
+    });
 });
