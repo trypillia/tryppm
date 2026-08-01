@@ -1,0 +1,102 @@
+load "../src/TrypPM.try";
+use TrypPM.Core.TrypPM;
+
+let originalOsExec = OS.exec;
+let originalOsExit = OS.exit;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFileWrite {
+    fn write(data) {}
+    fn close() {}
+}
+
+describe("TrypPM", fn() {
+    let exitCode = -1;
+    let mockExecLog = [];
+
+    beforeEach(fn() {
+        exitCode = -1;
+        mockExecLog = [];
+        
+        OS.exit = fn(code) {
+            exitCode = code;
+            return;
+        };
+        
+        OS.exec = fn(cmd) {
+            List.push(mockExecLog, cmd);
+            return MockResult(true, "");
+        };
+        
+        File.exists = fn(path) {
+            return false;
+        };
+        
+        File.open = fn(path, mode) {
+            return MockResult(true, MockFileWrite());
+        };
+    });
+    
+    afterEach(fn() {
+        OS.exit = originalOsExit;
+        OS.exec = originalOsExec;
+        File.exists = originalFileExists;
+        File.open = originalFileOpen;
+    });
+
+    it("should print usage and exit 1 if no args", fn() {
+        let ppm = TrypPM();
+        ppm.run([]);
+        assertEq(exitCode, 1);
+    });
+
+    it("should print usage and exit 1 if unknown command", fn() {
+        let ppm = TrypPM();
+        ppm.run(["unknown"]);
+        assertEq(exitCode, 1);
+    });
+
+    it("should call Initializer for init", fn() {
+        let ppm = TrypPM();
+        // Since File.exists("tryp.json") returns false, Initializer will create it 
+        // without exit(1).
+        ppm.run(["init"]);
+        // If it ran successfully, it shouldn't call exit(1) in the failure path.
+        // Wait, Initializer might not call exit at all if successful.
+        assertEq(exitCode, -1);
+    });
+
+    it("should call Installer for install", fn() {
+        let ppm = TrypPM();
+        // For 'install' without args, Installer looks for tryp.json.
+        // We mocked File.exists to return false, so Installer should print error and exit(1).
+        ppm.run(["install"]);
+        assertEq(exitCode, 1);
+    });
+
+    it("should exit 1 if uninstall has no package", fn() {
+        let ppm = TrypPM();
+        ppm.run(["uninstall"]);
+        assertEq(exitCode, 1);
+    });
+    
+    it("should call Upgrader for upgrade", fn() {
+        let ppm = TrypPM();
+        ppm.run(["upgrade"]);
+        // Upgrader runs OS.exec commands
+        let len = List.length(mockExecLog);
+        assert(len > 0);
+        // It shouldn't exit
+        assertEq(exitCode, -1);
+    });
+});
