@@ -1,15 +1,6 @@
 load "../src/Upgrader.try";
 use TrypPM.Core.Upgrader;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
-
 let originalOsExec = OS.exec;
 
 describe("Upgrader", fn() {
@@ -20,7 +11,7 @@ describe("Upgrader", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "Mock output for: " + cmd);
+            return MockResult.ok("Mock output for: " + cmd);
         };
     });
     
@@ -46,7 +37,7 @@ describe("Upgrader", fn() {
     it("should handle command failures gracefully", fn() {
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(false, "");
+            return MockResult.err("");
         };
         
         let upgrader = Upgrader();
