@@ -219,4 +219,18 @@ describe("Installer", fn() {
         let fullData = globalWrittenData[1];
         assert(String.indexOf(fullData, "load \"path/main.try\";") >= 0);
     });
+
+    it("should exit on version conflict", fn() {
+        let installer = Installer();
+        let installedMap = {"github:test/repo": "1.0.0"};
+        
+        Http.get = fn(url) {
+            return MockResult(true, Json.stringify([{"name": "v2.0.0"}]));
+        };
+        
+        let replaceMap = {};
+        installer._installWithProviders("github:test/repo", "*", replaceMap, installedMap);
+        
+        assertEq(exitCalled, true);
+    });
 });
