@@ -1,0 +1,112 @@
+load "../src/Uninstaller.try";
+use TrypPM.Core.Uninstaller;
+
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFile {
+    let mode;
+    let writtenData;
+    fn init(mode) {
+        this.mode = mode;
+        this.writtenData = "";
+    }
+    fn read() {
+        let manifest = {
+            "name": "test-pkg",
+            "dependencies": {
+                "github:test/repo": "1.0.0"
+            }
+        };
+        return MockResult(true, Json.stringify(manifest));
+    }
+    fn write(data) {
+        this.writtenData = this.writtenData + data;
+    }
+    fn close() {}
+}
+
+let originalOsExec = OS.exec;
+let originalOsExit = OS.exit;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+
+let globalWrittenData = "";
+let exitCalled = false;
+
+describe("Uninstaller", fn() {
+    let mockExecLog = [];
+    
+    beforeEach(fn() {
+        mockExecLog = [];
+        globalWrittenData = "";
+        exitCalled = false;
+        
+        OS.exec = fn(cmd) {
+            List.push(mockExecLog, cmd);
+            return MockResult(true, "");
+        };
+        
+        OS.exit = fn(code) {
+            exitCalled = true;
+            return;
+        };
+
+        File.exists = fn(path) {
+            return path == "tryp.json"; // exists for uninstaller
+        };
+
+        File.open = fn(path, mode) {
+            let mf = MockFile(mode);
+            // capture reference so we can inspect it later
+            if (mode == "w") {
+                mf.write = fn(data) { globalWrittenData = data; };
+            }
+            return MockResult(true, mf);
+        };
+    });
+    
+    afterEach(fn() {
+        OS.exec = originalOsExec;
+        OS.exit = originalOsExit;
+        File.exists = originalFileExists;
+        File.open = originalFileOpen;
+    });
+    
+    it("should remove package from tryp.json and delete directory", fn() {
+        let uninstaller = Uninstaller();
+        
+        // This will call Installer().installManifest() at the end,
+        // which will also read the same tryp.json mock and try to install 
+        // whatever dependencies are in our read() mock.
+        // Since our read() mock still returns the package (because we didn't update it),
+        // Installer will try to install it. But OS.exec is mocked, so it's fine.
+        
+        uninstaller.uninstallPackage("github:test/repo");
+        
+        assertEq(exitCalled, false);
+        assert(String.length(globalWrittenData) > 0);
+        
+        let newManifest = Json.parse(globalWrittenData);
+        assertEq(Map.has(newManifest["dependencies"], "github:test/repo"), false);
+        
+        // Check if rm -rf was called
+        // Since Installer() is called, it might log more commands, but rm -rf tryp_modules/repo should be the first
+        assertEq(mockExecLog[0], "rm -rf tryp_modules/repo");
+    });
+    
+    it("should exit if tryp.json is missing", fn() {
+        File.exists = fn(path) { return false; };
+        
+        let uninstaller = Uninstaller();
+        uninstaller.uninstallPackage("github:test/repo");
+        
+        assertEq(exitCalled, true);
+    });
+});
