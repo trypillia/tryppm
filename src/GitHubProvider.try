@@ -24,24 +24,30 @@ class GitHubProvider implements SemverTrait {
             let res = Http.get("https://api.github.com/repos/" + repoPath + "/tags");
             if (res.isOk && res.value != "") {
                 let tags = Json.parse(res.value);
-                let bestTag = "";
-                let len = List.length(tags);
-                for (let i = 0; i < len; i++) {
-                    let tag = tags[i];
-                    if (Map.has(tag, "name")) {
-                        let tagName = tag["name"];
-                        if (this.satisfies(tagName, requestedVersion)) {
-                            if (bestTag == "") {
-                                bestTag = tagName;
-                            } else {
-                                if (this.compareSemver(tagName, bestTag) > 0) {
-                                    bestTag = tagName;
+                if (tags != nil) {
+                    if (Map.has(tags, "message")) {
+                        print("GitHub API Error: " + tags["message"]);
+                    } else {
+                        let bestTag = "";
+                        let len = List.length(tags);
+                        for (let i = 0; i < len; i++) {
+                            let tag = tags[i];
+                            if (Map.has(tag, "name")) {
+                                let tagName = tag["name"];
+                                if (this.satisfies(tagName, requestedVersion)) {
+                                    if (bestTag == "") {
+                                        bestTag = tagName;
+                                    } else {
+                                        if (this.compareSemver(tagName, bestTag) > 0) {
+                                            bestTag = tagName;
+                                        }
+                                    }
                                 }
                             }
                         }
+                        if (bestTag != "") { return bestTag; }
                     }
                 }
-                if (bestTag != "") { return bestTag; }
             }
         }
         return requestedVersion;
