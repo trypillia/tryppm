@@ -13,26 +13,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Cache Trypillia Language
-        id: cache-trypillia
-        uses: actions/cache@v4
-        with:
-          path: /tmp/trypillia-language
-          key: trypillia-${{ runner.os }}-${{ github.sha }}
-
       - name: Setup Trypillia
-        if: steps.cache-trypillia.outputs.cache-hit != 'true'
         uses: trypillia/setup-trypillia@v2
         with:
           version: 'latest'
 
-      - name: Restore Trypillia PATH from Cache
-        if: steps.cache-trypillia.outputs.cache-hit == 'true'
-        run: |
-          mkdir -p $HOME/.local/bin
-          cp /tmp/trypillia-language/build/trypillia $HOME/.local/bin/trypillia
-          cp /tmp/trypillia-language/build/trypillia-test $HOME/.local/bin/trypillia-test
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+      - name: Upload Trypillia Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: trypillia-binaries
+          path: ~/.local/bin/trypillia*
+          retention-days: 1
 
       - name: Run Tests
         run: trypillia-test --coverage test.try
@@ -49,24 +40,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Restore Trypillia Language Cache
-        uses: actions/cache@v4
+      - name: Download Trypillia Binaries
+        uses: actions/download-artifact@v4
         with:
-          path: /tmp/trypillia-language
-          key: trypillia-${{ runner.os }}-${{ github.sha }}
+          name: trypillia-binaries
+          path: ~/.local/bin/
 
-      - name: Restore Trypillia PATH from Cache
+      - name: Setup Trypillia (From Artifact)
         run: |
-          mkdir -p $HOME/.local/bin
-          cp /tmp/trypillia-language/build/trypillia $HOME/.local/bin/trypillia
-          cp /tmp/trypillia-language/build/trypillia-test $HOME/.local/bin/trypillia-test
+          chmod +x ~/.local/bin/trypillia*
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Build TrypPM binary
         run: trypillia build main.try tryppm
 
       - name: Upload Binary Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: tryppm-linux-amd64
           path: tryppm
