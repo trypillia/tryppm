@@ -9,15 +9,6 @@ let originalFileOpen = File.open;
 let globalWrittenData = "";
 let exitCalled = false;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
-
 class MockFileRead {
     fn read() {
         let manifest = {
@@ -26,7 +17,7 @@ class MockFileRead {
                 "github:test/repo": "1.0.0"
             }
         };
-        return MockResult(true, Json.stringify(manifest));
+        return MockResult.ok(Json.stringify(manifest));
     }
     fn close() {}
 }
@@ -54,7 +45,7 @@ describe("Uninstaller", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
         
         OS.exit = fn(code) {
@@ -68,9 +59,9 @@ describe("Uninstaller", fn() {
 
         File.open = fn(path, mode) {
             if (mode == "w") {
-                return MockResult(true, MockFileWrite(path));
+                return MockResult.ok(MockFileWrite(path));
             } else {
-                return MockResult(true, MockFileRead());
+                return MockResult.ok(MockFileRead());
             }
         };
     });
@@ -114,10 +105,10 @@ describe("Uninstaller", fn() {
     it("should exit if tryp.json cannot be read", fn() {
         File.open = fn(path, mode) {
             class MockFileReadError {
-                fn read() { return MockResult(false, ""); }
+                fn read() { return MockResult.err(""); }
                 fn close() {}
             }
-            return MockResult(true, MockFileReadError());
+            return MockResult.ok(MockFileReadError());
         };
         
         let uninstaller = Uninstaller();
