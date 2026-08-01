@@ -29,6 +29,12 @@ describe("SemverTrait", fn() {
         assertEq(helper.satisfies("1.3.0", "~1.2.0"), false);
     });
 
+    it("should satisfy exact version constraints", fn() {
+        let helper = SemverHelper();
+        assertEq(helper.satisfies("v1.2.3", "1.2.3"), true);
+        assertEq(helper.satisfies("v1.2.4", "1.2.3"), false);
+    });
+
     it("should compare semver correctly", fn() {
         let helper = SemverHelper();
         assert(helper.compareSemver("1.2.3", "1.2.4") < 0);
