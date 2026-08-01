@@ -1,3 +1,4 @@
+load "../../src/SemverTrait.try";
 load "../../src/GitHubProvider.try";
 use TrypPM.Providers.GitHubProvider;
 
