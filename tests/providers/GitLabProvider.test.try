@@ -1,0 +1,115 @@
+load "../../src/SemverTrait.try";
+load "../../src/GitLabProvider.try";
+use TrypPM.Providers.GitLabProvider;
+
+let depsCalledFlag = false;
+
+class MockInstaller {
+    fn installDeps(deps, replaceMap, installedMap) {
+        depsCalledFlag = true;
+    }
+}
+
+class MockResult {
+    let isOk;
+    let value;
+    fn init(isOk, value) {
+        this.isOk = isOk;
+        this.value = value;
+    }
+}
+
+class MockFile {
+    fn read() {
+        let map = {"dependencies": {"some-dep": "1.0.0"}};
+        return MockResult(true, Json.stringify(map));
+    }
+    fn close() {}
+}
+
+let originalOsExec = OS.exec;
+let originalFileExists = File.exists;
+let originalFileOpen = File.open;
+let originalHttpGet = Http.get;
+
+describe("GitLabProvider", fn() {
+    let mockExecLog = [];
+    
+    beforeEach(fn() {
+        mockExecLog = [];
+        
+        OS.exec = fn(cmd) {
+            List.push(mockExecLog, cmd);
+            return MockResult(true, "");
+        };
+
+        File.exists = fn(path) {
+            return path == "_test_target_dir/hello-world/tryp.json";
+        };
+
+        File.open = fn(path, mode) {
+            return MockResult(true, MockFile());
+        };
+
+        Http.get = fn(url) {
+            if (url == "https://gitlab.com/api/v4/projects/gitlab-org%2Fhello-world/repository/tags") {
+                let tags = [
+                    {"name": "v0.9.0"},
+                    {"name": "v1.0.0"},
+                    {"name": "v1.1.0"},
+                    {"name": "v2.0.0"}
+                ];
+                return MockResult(true, Json.stringify(tags));
+            } else if (url == "https://gitlab.com/api/v4/projects/gitlab-org%2Fhello-world/releases") {
+                return MockResult(true, Json.stringify([{"tag_name": "v2.0.0"}]));
+            } else if (url == "https://gitlab.com/api/v4/projects/this-repo-should-never-exist-xyz123%2Ftest/repository/tags" || url == "https://gitlab.com/api/v4/projects/this-repo-should-never-exist-xyz123%2Ftest/releases") {
+                return MockResult(false, "");
+            }
+            return MockResult(false, "");
+        };
+    });
+
+    afterEach(fn() {
+        OS.exec = originalOsExec;
+        File.exists = originalFileExists;
+        File.open = originalFileOpen;
+        Http.get = originalHttpGet;
+    });
+
+    it("should support gitlab: prefix", fn() {
+        let p = GitLabProvider();
+        assertEq(p.supports("gitlab:gitlab-org/hello-world"), true);
+        assertEq(p.supports("github:octocat/Hello-World"), false);
+    });
+
+    it("should resolve version 'latest' to a tag or main", fn() {
+        let p = GitLabProvider();
+        let ver = p.resolveVersion("gitlab:gitlab-org/hello-world", "latest");
+        assertEq(ver, "v2.0.0");
+    });
+
+    it("should resolve version with caret constraint", fn() {
+        let p = GitLabProvider();
+        let ver = p.resolveVersion("gitlab:gitlab-org/hello-world", "^1.0.0");
+        assertEq(ver, "v1.1.0");
+    });
+
+    it("should fallback to requested version for unknown repo", fn() {
+        let p = GitLabProvider();
+        let ver = p.resolveVersion("gitlab:this-repo-should-never-exist-xyz123/test", "latest");
+        assertEq(ver, "main");
+    });
+
+    it("should install package via git clone", fn() {
+        let p = GitLabProvider();
+        let installer = MockInstaller();
+        depsCalledFlag = false;
+        
+        let res = p.install("gitlab:gitlab-org/hello-world", "master", "_test_target_dir", {}, {}, installer);
+        
+        assertEq(res, true);
+        assertEq(mockExecLog[0], "rm -rf _test_target_dir/hello-world");
+        assertEq(mockExecLog[1], "git clone --depth 1 --branch master https://gitlab.com/gitlab-org/hello-world.git _test_target_dir/hello-world");
+        assertEq(depsCalledFlag, true);
+    });
+});
