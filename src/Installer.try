@@ -109,6 +109,7 @@ class Installer {
         if (!File.exists("tryp.json")) {
             print("Error: tryp.json not found in current directory.");
             OS.exit(1);
+            return;
         }
         
         let file = File.open("tryp.json", "r");

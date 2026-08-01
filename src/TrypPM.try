@@ -15,6 +15,7 @@ class TrypPM {
         if (List.length(args) < 1) {
             this.printUsage();
             OS.exit(1);
+            return;
         }
         
         let command = args[0];
@@ -39,11 +40,13 @@ class TrypPM {
             } else {
                 print("Error: Please specify a package to uninstall. Example: tryppm uninstall github:User/Repo");
                 OS.exit(1);
+                return;
             }
         } else {
             print("Unknown command: " + command);
             this.printUsage();
             OS.exit(1);
+            return;
         }
     }
     
