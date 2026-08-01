@@ -6,15 +6,6 @@ let originalOsExit = OS.exit;
 let originalFileExists = File.exists;
 let originalFileOpen = File.open;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
-
 class MockFileWrite {
     fn write(data) {}
     fn close() {}
@@ -35,7 +26,7 @@ describe("TrypPM", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
         
         File.exists = fn(path) {
@@ -43,7 +34,7 @@ describe("TrypPM", fn() {
         };
         
         File.open = fn(path, mode) {
-            return MockResult(true, MockFileWrite());
+            return MockResult.ok(MockFileWrite());
         };
     });
     
