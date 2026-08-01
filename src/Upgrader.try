@@ -6,7 +6,7 @@ class Upgrader {
         
         print("-> Cloning repository to /tmp/trypillia_update ...");
         OS.exec("rm -rf /tmp/trypillia_update");
-        let cloneOut = OS.exec("git clone https://github.com/ChernegaSergiy/trypillia-language.git /tmp/trypillia_update 2>&1");
+        let cloneOut = OS.exec("git clone https://github.com/trypillia/trypillia-language.git /tmp/trypillia_update 2>&1");
         if (cloneOut.isOk && cloneOut.value != "") print(cloneOut.value);
         
         print("-> Configuring build with CMake ...");
