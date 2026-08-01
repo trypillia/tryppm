@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Trypillia
+        uses: trypillia/setup-trypillia@v2
+        with:
+          version: 'latest'
+
+      - name: Run Tests
+        run: trypillia-test --coverage test.try
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.info
+
+      - name: Build TrypPM binary
+        run: trypillia build main.try tryppm
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: tryppm-linux-amd64
+          path: tryppm
+          retention-days: 7
