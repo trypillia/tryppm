@@ -174,4 +174,16 @@ describe("Installer", fn() {
         
         assertEq(exitCalled, true);
     });
+
+    it("should use replaceMap when installing dependencies", fn() {
+        let installer = Installer();
+        let deps = {"github:test/repo": "1.0.0"};
+        let replaceMap = {"github:test/repo": "../local/path"};
+        let installedMap = {};
+        
+        installer.installDeps(deps, replaceMap, installedMap);
+        
+        // It should resolve via LocalProvider to local:../local/path
+        assertEq(Map.has(installedMap, "local:../local/path"), true);
+    });
 });
