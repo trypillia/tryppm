@@ -10,19 +10,12 @@ class MockInstaller {
     }
 }
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
+
 
 class MockFile {
     fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};
-        return MockResult(true, Json.stringify(map));
+        return MockResult.ok(Json.stringify(map));
     }
     fn close() {}
 }
@@ -40,7 +33,7 @@ describe("GitLabProvider", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
 
         File.exists = fn(path) {
@@ -48,7 +41,7 @@ describe("GitLabProvider", fn() {
         };
 
         File.open = fn(path, mode) {
-            return MockResult(true, MockFile());
+            return MockResult.ok(MockFile());
         };
 
         Http.get = fn(url) {
@@ -59,13 +52,13 @@ describe("GitLabProvider", fn() {
                     {"name": "v1.1.0"},
                     {"name": "v2.0.0"}
                 ];
-                return MockResult(true, Json.stringify(tags));
+                return MockResult.ok(Json.stringify(tags));
             } else if (url == "https://gitlab.com/api/v4/projects/gitlab-org%2Fhello-world/releases") {
-                return MockResult(true, Json.stringify([{"tag_name": "v2.0.0"}]));
+                return MockResult.ok(Json.stringify([{"tag_name": "v2.0.0"}]));
             } else if (url == "https://gitlab.com/api/v4/projects/this-repo-should-never-exist-xyz123%2Ftest/repository/tags" || url == "https://gitlab.com/api/v4/projects/this-repo-should-never-exist-xyz123%2Ftest/releases") {
-                return MockResult(false, "");
+                return MockResult.err("");
             }
-            return MockResult(false, "");
+            return MockResult.err("");
         };
     });
 
@@ -122,7 +115,7 @@ describe("GitLabProvider", fn() {
     it("should return false and print error if git clone fails", fn() {
         let p = GitLabProvider();
         OS.exec = fn(cmd) {
-            return MockResult(false, "");
+            return MockResult.err("");
         };
         let res = p.install("gitlab:gitlab-org/hello-world", "master", "_test_target_dir", {}, {}, MockInstaller());
         assertEq(res, false);
