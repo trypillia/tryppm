@@ -19,6 +19,7 @@ class Uninstaller {
         if (!contentRes.isOk) {
             print("Error reading tryp.json");
             OS.exit(1);
+            return;
         }
         
         let manifest = Json.parse(contentRes.value);
