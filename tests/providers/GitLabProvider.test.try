@@ -118,4 +118,13 @@ describe("GitLabProvider", fn() {
         assertEq(mockExecLog[1], "git clone --depth 1 --branch master https://gitlab.com/gitlab-org/hello-world.git _test_target_dir/hello-world");
         assertEq(depsCalledFlag, true);
     });
+
+    it("should return false and print error if git clone fails", fn() {
+        let p = GitLabProvider();
+        OS.exec = fn(cmd) {
+            return MockResult(false, "");
+        };
+        let res = p.install("gitlab:gitlab-org/hello-world", "master", "_test_target_dir", {}, {}, MockInstaller());
+        assertEq(res, false);
+    });
 });
