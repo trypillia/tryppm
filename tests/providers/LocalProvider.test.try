@@ -14,8 +14,6 @@ let originalOsExec = OS.exec;
 let originalFileExists = File.exists;
 let originalFileOpen = File.open;
 
-
-
 class MockFile {
     fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};

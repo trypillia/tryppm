@@ -10,8 +10,6 @@ class MockInstaller {
     }
 }
 
-
-
 class MockFile {
     fn read() {
         let map = {"dependencies": {"some-dep": "1.0.0"}};
