@@ -10,9 +10,6 @@ class MockResult {
     }
 }
 
-let globalWrittenData = "";
-let exitCalled = false;
-
 class MockFileRead {
     let path;
     fn init(path) {
@@ -46,13 +43,13 @@ class MockFileRead {
 
 class MockFileWrite {
     let path;
-    fn init(path) {
+    let writeCb;
+    fn init(path, writeCb) {
         this.path = path;
+        this.writeCb = writeCb;
     }
     fn write(data) {
-        if (this.path == "autoload.try") {
-            globalWrittenData = globalWrittenData + data;
-        }
+        this.writeCb(this.path, data);
     }
     fn close() {}
 }
@@ -65,10 +62,12 @@ let originalHttpGet = Http.get;
 
 describe("Installer", fn() {
     let mockExecLog = [];
+    let globalWrittenData = [];
+    let exitCalled = false;
     
     beforeEach(fn() {
         mockExecLog = [];
-        globalWrittenData = "";
+        globalWrittenData = [];
         exitCalled = false;
         
         OS.exec = fn(cmd) {
@@ -88,7 +87,11 @@ describe("Installer", fn() {
 
         File.open = fn(path, mode) {
             if (mode == "w") {
-                return MockResult(true, MockFileWrite(path));
+                let writeCb = fn(p, data) {
+                    List.push(globalWrittenData, p);
+                    List.push(globalWrittenData, data);
+                };
+                return MockResult(true, MockFileWrite(path, writeCb));
             } else {
                 return MockResult(true, MockFileRead(path));
             }
@@ -119,15 +122,15 @@ describe("Installer", fn() {
         
         assertEq(exitCalled, false);
         
-        // It should clone repo, path, and sub-repo
         let len = List.length(mockExecLog);
         assert(len > 0);
         
-        // Autoloader should contain entry points
-        assert(String.length(globalWrittenData) > 0);
-        // Autoload should have sub-repo, repo, and path mapped
-        assert(String.indexOf(globalWrittenData, "tryp_modules/sub-repo/main.try") >= 0);
-        assert(String.indexOf(globalWrittenData, "tryp_modules/repo/main.try") >= 0);
+        let fullData = globalWrittenData[1];
+        
+        assert(String.length(fullData) > 0);
+        assert(String.indexOf(fullData, "load \"sub-repo/main.try\";") >= 0);
+        assert(String.indexOf(fullData, "load \"repo/main.try\";") >= 0);
+        assert(String.indexOf(fullData, "load \"path/main.try\";") >= 0);
     });
     
     it("should exit if tryp.json is missing", fn() {
