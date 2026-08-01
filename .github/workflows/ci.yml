@@ -1,4 +1,4 @@
-name: CI
+name: TrypPM CI Workflow
 
 on:
   push:
