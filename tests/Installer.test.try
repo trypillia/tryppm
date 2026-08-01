@@ -1,15 +1,6 @@
 load "../src/Installer.try";
 use TrypPM.Core.Installer;
 
-class MockResult {
-    let isOk;
-    let value;
-    fn init(isOk, value) {
-        this.isOk = isOk;
-        this.value = value;
-    }
-}
-
 class MockFileRead {
     let path;
     fn init(path) {
@@ -24,7 +15,7 @@ class MockFileRead {
                     "local:../some/path": "1.0.0"
                 }
             };
-            return MockResult(true, Json.stringify(manifest));
+            return MockResult.ok(Json.stringify(manifest));
         } else if (this.path == "tryp_modules/repo/tryp.json") {
             let depManifest = {
                 "name": "repo",
@@ -32,11 +23,11 @@ class MockFileRead {
                     "github:test/sub-repo": "2.0.0"
                 }
             };
-            return MockResult(true, Json.stringify(depManifest));
+            return MockResult.ok(Json.stringify(depManifest));
         } else if (this.path == "tryp_modules/path/tryp.json" || this.path == "tryp_modules/sub-repo/tryp.json") {
-            return MockResult(true, "{}");
+            return MockResult.ok("{}");
         }
-        return MockResult(false, "");
+        return MockResult.err("");
     }
     fn close() {}
 }
@@ -72,7 +63,7 @@ describe("Installer", fn() {
         
         OS.exec = fn(cmd) {
             List.push(mockExecLog, cmd);
-            return MockResult(true, "");
+            return MockResult.ok("");
         };
         
         OS.exit = fn(code) {
@@ -91,20 +82,20 @@ describe("Installer", fn() {
                     List.push(globalWrittenData, p);
                     List.push(globalWrittenData, data);
                 };
-                return MockResult(true, MockFileWrite(path, writeCb));
+                return MockResult.ok(MockFileWrite(path, writeCb));
             } else {
-                return MockResult(true, MockFileRead(path));
+                return MockResult.ok(MockFileRead(path));
             }
         };
         
         Http.get = fn(url) {
             // Minimal mock for GitHubProvider used in installManifest
             if (url == "https://api.github.com/repos/test/repo/tags") {
-                return MockResult(true, Json.stringify([{"name": "v1.0.0"}]));
+                return MockResult.ok(Json.stringify([{"name": "v1.0.0"}]));
             } else if (url == "https://api.github.com/repos/test/sub-repo/tags") {
-                return MockResult(true, Json.stringify([{"name": "v2.0.0"}]));
+                return MockResult.ok(Json.stringify([{"name": "v2.0.0"}]));
             }
-            return MockResult(false, "");
+            return MockResult.err("");
         };
     });
     
@@ -145,10 +136,10 @@ describe("Installer", fn() {
     it("should exit if tryp.json cannot be read", fn() {
         File.open = fn(path, mode) {
             class MockFileReadError {
-                fn read() { return MockResult(false, ""); }
+                fn read() { return MockResult.err(""); }
                 fn close() {}
             }
-            return MockResult(true, MockFileReadError());
+            return MockResult.ok(MockFileReadError());
         };
         
         let installer = Installer();
@@ -162,11 +153,11 @@ describe("Installer", fn() {
             class MockFileReadNoDeps {
                 fn read() {
                     let manifest = {"name": "test-pkg"};
-                    return MockResult(true, Json.stringify(manifest));
+                    return MockResult.ok(Json.stringify(manifest));
                 }
                 fn close() {}
             }
-            return MockResult(true, MockFileReadNoDeps());
+            return MockResult.ok(MockFileReadNoDeps());
         };
         
         let installer = Installer();
@@ -194,7 +185,7 @@ describe("Installer", fn() {
                     List.push(globalWrittenData, p);
                     List.push(globalWrittenData, data);
                 };
-                return MockResult(true, MockFileWrite(path, writeCb));
+                return MockResult.ok(MockFileWrite(path, writeCb));
             } else {
                 class MockFileReadWithReplace {
                     fn read() {
@@ -203,11 +194,11 @@ describe("Installer", fn() {
                             "dependencies": {"github:test/repo": "1.0.0"},
                             "replace": {"github:test/repo": "../local/path"}
                         };
-                        return MockResult(true, Json.stringify(manifest));
+                        return MockResult.ok(Json.stringify(manifest));
                     }
                     fn close() {}
                 }
-                return MockResult(true, MockFileReadWithReplace());
+                return MockResult.ok(MockFileReadWithReplace());
             }
         };
         
@@ -223,7 +214,7 @@ describe("Installer", fn() {
         let installedMap = {"github:test/repo": "1.0.0"};
         
         Http.get = fn(url) {
-            return MockResult(true, Json.stringify([{"name": "v2.0.0"}]));
+            return MockResult.ok(Json.stringify([{"name": "v2.0.0"}]));
         };
         
         let replaceMap = {};
@@ -239,9 +230,9 @@ describe("Installer", fn() {
                     List.push(globalWrittenData, p);
                     List.push(globalWrittenData, data);
                 };
-                return MockResult(true, MockFileWrite(path, writeCb));
+                return MockResult.ok(MockFileWrite(path, writeCb));
             }
-            return MockResult(true, MockFileRead(path));
+            return MockResult.ok(MockFileRead(path));
         };
         
         let installer = Installer();
@@ -260,9 +251,9 @@ describe("Installer", fn() {
                     List.push(globalWrittenData, p);
                     List.push(globalWrittenData, data);
                 };
-                return MockResult(true, MockFileWrite(path, writeCb));
+                return MockResult.ok(MockFileWrite(path, writeCb));
             }
-            return MockResult(true, MockFileRead(path));
+            return MockResult.ok(MockFileRead(path));
         };
         
         let installer = Installer();
