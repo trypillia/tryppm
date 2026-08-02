@@ -54,6 +54,7 @@ describe("LocalProvider", fn() {
         let p = LocalProvider();
         assertEq(p.supports("local:../path"), true);
         assertEq(p.supports("github:User/Repo"), false);
+        assertEq(p.supports("local"), false);
     });
 
     it("should resolve version to LOCAL", fn() {

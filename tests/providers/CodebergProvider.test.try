@@ -71,6 +71,7 @@ describe("CodebergProvider", fn() {
         let p = CodebergProvider();
         assertEq(p.supports("codeberg:user/hello-world"), true);
         assertEq(p.supports("github:octocat/Hello-World"), false);
+        assertEq(p.supports("codeberg"), false);
     });
 
     it("should resolve version 'latest' to a tag or main", fn() {

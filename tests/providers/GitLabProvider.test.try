@@ -71,6 +71,7 @@ describe("GitLabProvider", fn() {
         let p = GitLabProvider();
         assertEq(p.supports("gitlab:gitlab-org/hello-world"), true);
         assertEq(p.supports("github:octocat/Hello-World"), false);
+        assertEq(p.supports("gitlab"), false);
     });
 
     it("should resolve version 'latest' to a tag or main", fn() {

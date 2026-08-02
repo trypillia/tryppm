@@ -72,6 +72,7 @@ describe("GitHubProvider", fn() {
         let p = GitHubProvider();
         assertEq(p.supports("github:octocat/Hello-World"), true);
         assertEq(p.supports("local:../path"), false);
+        assertEq(p.supports("github"), false);
     });
 
     it("should resolve version 'latest' to a tag or main", fn() {
