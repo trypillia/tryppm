@@ -3,7 +3,7 @@ namespace TrypPM.Providers;
 class CodebergProvider implements SemverTrait {
     fn supports(pkgStr) {
         let parts = String.split(pkgStr, ":");
-        return List.length(parts) > 0 && parts[0] == "codeberg";
+        return List.length(parts) > 1 && parts[0] == "codeberg";
     }
 
     fn resolveVersion(pkgStr, requestedVersion) {

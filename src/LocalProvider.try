@@ -3,7 +3,7 @@ namespace TrypPM.Providers;
 class LocalProvider {
     fn supports(pkgStr) {
         let parts = String.split(pkgStr, ":");
-        return List.length(parts) > 0 && parts[0] == "local";
+        return List.length(parts) > 1 && parts[0] == "local";
     }
 
     fn resolveVersion(pkgStr, requestedVersion) {

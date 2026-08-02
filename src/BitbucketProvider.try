@@ -3,7 +3,7 @@ namespace TrypPM.Providers;
 class BitbucketProvider implements SemverTrait {
     fn supports(pkgStr) {
         let parts = String.split(pkgStr, ":");
-        return List.length(parts) > 0 && parts[0] == "bitbucket";
+        return List.length(parts) > 1 && parts[0] == "bitbucket";
     }
 
     fn resolveVersion(pkgStr, requestedVersion) {
